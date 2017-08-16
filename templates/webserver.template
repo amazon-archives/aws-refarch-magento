@@ -2,6 +2,16 @@
     "AWSTemplateFormatVersion": "2010-09-09",
     "Description": "Magento 2.1 Web Server Template",
     "Parameters": {
+        "MagentoPublicKey": {
+            "Description": "(Optional) Public key for Magento Marketplace to download Amazon Pay extension",
+            "Type": "String",
+            "NoEcho": "True"
+        },
+        "MagentoPrivateKey": {
+            "Description": "(Optional) Private key for Magento Marketplace to download Amazon Pay extension",
+            "Type": "String",
+            "NoEcho": "True"
+        },
         "AdminEmail": {
             "Description": "Email of the Magento site administrator",
             "Type": "String"
@@ -112,10 +122,10 @@
             "Type": "String"
         },
         "QSS3KeyPrefix": {
-            "AllowedPattern": "^[0-9a-zA-Z-]+(/[0-9a-zA-Z-]+)*$",
-            "ConstraintDescription": "AWS Quick Start key prefix can include numbers, lowercase letters, uppercase letters, hyphens (-), and forward slash (/). It cannot start or end with forward slash (/) because they are automatically appended.",
-            "Default": "magento/latest",
-            "Description": "S3 key prefix for the AWS Quick Start assets. AWS Quick Start key prefix can include numbers, lowercase letters, uppercase letters, hyphens (-), and forward slash (/). It cannot start or end with forward slash (/) because they are automatically appended.",
+            "AllowedPattern": "^[0-9a-zA-Z-/]*$",
+            "ConstraintDescription": "Quick Start key prefix can include numbers, lowercase letters, uppercase letters, hyphens (-), and forward slash (/).",
+			"Default": "magento/latest/",
+            "Description": "S3 key prefix for the Quick Start assets. Quick Start key prefix can include numbers, lowercase letters, uppercase letters, hyphens (-), and forward slash (/).",
             "Type": "String"
         },
         "SSLCertificateId": {
@@ -240,64 +250,6 @@
             "us-west-2": {
                 "AMZNLINUXHVM": "ami-6df1e514"
             }
-        },
-        "AWSInfoRegionMap": {
-            "ap-northeast-1": {
-                "Partition": "aws",
-                "QuickStartS3URL": "https://s3.amazonaws.com"
-            },
-            "ap-northeast-2": {
-                "Partition": "aws",
-                "QuickStartS3URL": "https://s3.amazonaws.com"
-            },
-            "ap-south-1": {
-                "Partition": "aws",
-                "QuickStartS3URL": "https://s3.amazonaws.com"
-            },
-            "ap-southeast-1": {
-                "Partition": "aws",
-                "QuickStartS3URL": "https://s3.amazonaws.com"
-            },
-            "ap-southeast-2": {
-                "Partition": "aws",
-                "QuickStartS3URL": "https://s3.amazonaws.com"
-            },
-            "ca-central-1": {
-                "Partition": "aws",
-                "QuickStartS3URL": "https://s3.amazonaws.com"
-            },
-            "eu-central-1": {
-                "Partition": "aws",
-                "QuickStartS3URL": "https://s3.amazonaws.com"
-            },
-            "eu-west-1": {
-                "Partition": "aws",
-                "QuickStartS3URL": "https://s3.amazonaws.com"
-            },
-            "sa-east-1": {
-                "Partition": "aws",
-                "QuickStartS3URL": "https://s3.amazonaws.com"
-            },
-            "us-east-1": {
-                "Partition": "aws",
-                "QuickStartS3URL": "https://s3.amazonaws.com"
-            },
-            "us-east-2": {
-                "Partition": "aws",
-                "QuickStartS3URL": "https://s3.amazonaws.com"
-            },
-            "us-gov-west-1": {
-                "Partition": "aws-us-gov",
-                "QuickStartS3URL": "https://s3-us-gov-west-1.amazonaws.com"
-            },
-            "us-west-1": {
-                "Partition": "aws",
-                "QuickStartS3URL": "https://s3.amazonaws.com"
-            },
-            "us-west-2": {
-                "Partition": "aws",
-                "QuickStartS3URL": "https://s3.amazonaws.com"
-            }
         }
     },
     "Conditions": {
@@ -327,6 +279,34 @@
                     "Ref": "DNSName"
                 },
                 ""
+            ]
+        },
+        "GovCloudCondition": {
+            "Fn::Equals": [
+                {
+                    "Ref": "AWS::Region"
+                },
+                "us-gov-west-1"
+            ]
+        },
+        "DontInstallAmazonPay": {
+          	"Fn::Or": [
+                {
+                    "Fn::Equals": [
+                        {
+                            "Ref": "MagentoPublicKey"
+                        },
+                        ""
+                    ]
+                },
+                {
+                    "Fn::Equals": [
+                        {
+                            "Ref": "MagentoPrivateKey"
+                        },
+                        ""
+                    ]
+                }
             ]
         }
     },
@@ -454,29 +434,17 @@
                                         "logs:DescribeLogStreams"
                                     ],
                                     "Resource": {
-                                        "Fn::Join": [
-                                            "",
-                                            [
-                                                "arn:",
-                                                {
-                                                    "Fn::FindInMap": [
-                                                        "AWSInfoRegionMap",
-                                                        {
-                                                            "Ref": "AWS::Region"
-                                                        },
-                                                        "Partition"
+                                        "Fn::Sub": [
+                                            "arn:${Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${MagentoMainLogGroup}:*",
+                                            {
+                                                "Partition": {
+                                                    "Fn::If": [
+                                                        "GovCloudCondition",
+                                                        "aws-us-gov",
+                                                        "aws"
                                                     ]
-                                                },
-                                                ":logs:",
-                                                {
-                                                    "Ref": "AWS::Region"
-                                                },
-                                                ":*:",
-                                                {
-                                                    "Ref": "MagentoMainLogGroup"
-                                                },
-                                                ":*"
-                                            ]
+                                                }
+                                            }
                                         ]
                                     }
                                 },
@@ -794,7 +762,7 @@
                                             {
                                                 "Ref": "QSS3KeyPrefix"
                                             },
-                                            "/scripts/install_magento.sh"
+                                            "scripts/install_magento.sh"
                                         ]
                                     ]
                                 },
@@ -816,7 +784,7 @@
                                             {
                                                 "Ref": "QSS3KeyPrefix"
                                             },
-                                            "/scripts/configure_magento.sh"
+                                            "scripts/configure_magento.sh"
                                         ]
                                     ]
                                 },
@@ -833,6 +801,26 @@
                                 "owner": "root",
                                 "group": "root",
                                 "authentication": "S3AccessCreds"
+                            },
+                            "/tmp/auth.json": {
+                                "content": {
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            "{\n",
+                                            "  \"http-basic\": {\n",
+                                            "    \"repo.magento.com\": {\n",
+                                            "        \"username\": \"",{ "Ref": "MagentoPublicKey" },"\",\n",
+                                            "        \"password\": \"",{ "Ref": "MagentoPrivateKey" },"\"\n",
+                                            "     }\n",
+                                            "  }\n",
+                                            "}"
+                                        ]
+                                    ]
+                                },
+                                "mode": "000400",
+                                "owner": "root",
+                                "group": "root"
                             },
                             "/tmp/params.txt": {
                                 "content": {
@@ -933,6 +921,15 @@
                                             "MagentoTimezone|",
                                             {
                                                 "Ref": "MagentoTimezone"
+                                            },
+                                            "\n",
+                                            "DontInstallAmazonPay|",
+                                            {
+                                                "Fn::If": [
+                                                    "DontInstallAmazonPay",
+                                                    "TRUE",
+                                                    "FALSE"
+                                                ]
                                             },
                                             "\n"
                                         ]
@@ -1075,29 +1072,17 @@
                                         "logs:PutLogEvents"
                                     ],
                                     "Resource": {
-                                        "Fn::Join": [
-                                            "",
-                                            [
-                                                "arn:",
-                                                {
-                                                    "Fn::FindInMap": [
-                                                        "AWSInfoRegionMap",
-                                                        {
-                                                            "Ref": "AWS::Region"
-                                                        },
-                                                        "Partition"
+                                        "Fn::Sub": [
+                                            "arn:${Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${MagentoMainLogGroup}:*",
+                                            {
+                                                "Partition": {
+                                                    "Fn::If": [
+                                                        "GovCloudCondition",
+                                                        "aws-us-gov",
+                                                        "aws"
                                                     ]
-                                                },
-                                                ":logs:",
-                                                {
-                                                    "Ref": "AWS::Region"
-                                                },
-                                                ":*:",
-                                                {
-                                                    "Ref": "MagentoMainLogGroup"
-                                                },
-                                                ":*"
-                                            ]
+                                                }
+                                            }
                                         ]
                                     }
                                 },

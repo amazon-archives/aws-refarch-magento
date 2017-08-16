@@ -20,6 +20,7 @@ function exportParams() {
 	magentolanguage=`grep 'MagentoLanguage' ${PARAMS_FILE} | awk -F'|' '{print $2}' | sed -e 's/^ *//g;s/ *$//g'`
 	magentocurrency=`grep 'MagentoCurrency' ${PARAMS_FILE} | awk -F'|' '{print $2}' | sed -e 's/^ *//g;s/ *$//g'`
 	magentotimezone=`grep 'MagentoTimezone' ${PARAMS_FILE} | awk -F'|' '{print $2}' | sed -e 's/^ *//g;s/ *$//g'`
+	dontinstallamazonpay=`grep 'DontInstallAmazonPay' ${PARAMS_FILE} | awk -F'|' '{print $2}' | sed -e 's/^ *//g;s/ *$//g'`
 }
 
 if [ $# -ne 1 ]; then
@@ -46,8 +47,9 @@ certificateid='NONE'
 magentolanguage='NONE'
 magentocurrency='NONE'
 magentotimezone='NONE'
+dontinstallamazonpay='NONE'
 
-#install_magento.sh dbhost dbuser dbpassword dbname cname adminfirstname adminlastname adminemail adminuser adminpassword cachehost efsid magentourl certificateid magentolanguage magentocurrency magentotimezone	                                    		                                    	
+#install_magento.sh dbhost dbuser dbpassword dbname cname adminfirstname adminlastname adminemail adminuser adminpassword cachehost efsid magentourl certificateid magentolanguage magentocurrency magentotimezone dontinstallamazonpay                                		                                    	
 
 if [ -f ${PARAMS_FILE} ]; then
 	echo "Extracting parameter values from params file"
@@ -607,6 +609,36 @@ tar czf /root/media.tgz -C /var/www/html/pub/media .
 mount -t nfs4 -o vers=4.1 $efsid.efs.$EC2_REGION.amazonaws.com:/ /var/www/html/pub/media
 rm -rf /var/www/html/pub/media/*
 tar xzf /root/media.tgz -C /var/www/html/pub/media
+
+# Install Composer
+export COMPOSER_HOME=/home/ec2-user/
+cd /var/www/html/
+curl -sS https://getcomposer.org/installer | php
+sudo mv composer.phar /usr/local/bin/composer
+
+# Install Amazon Pay - only if Magento Marketplace Private and public key is provided
+if [ $dontinstallamazonpay == "FALSE" ]
+then
+	# Installing Amazon Pay plugin
+	echo "Installing Amazon Pay..."
+	mv /tmp/auth.json ./
+	/usr/local/bin/composer require amzn/amazon-payments-magento-2-plugin:^1.1.0
+	php bin/magento module:enable Amazon_Core Amazon_Login Amazon_Payment
+	php bin/magento setup:upgrade
+	php bin/magento setup:di:compile
+	language="en_US"
+	if [ $magentolanguage == $language ]
+	then
+		# if language is en_US don't pass it as argument
+		# it throws InvalidArgumentException. Because default is en_US
+		php bin/magento setup:static-content:deploy	
+	else
+		php bin/magento setup:static-content:deploy $magentolanguage
+	fi
+else
+	echo "Not installing Amazon Pay..."
+fi
+
 
 # Remove passwords from files
 sed -i s/${dbpassword}/xxxxx/g /var/log/cloud-init.log
