@@ -8,7 +8,8 @@ You can launch this CloudFormation stack, using in your own account into: -
   * A new VPC - [![cloudformation-launch-stack](images/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/new?stackName=Magento&templateURL=https://s3.amazonaws.com/quickstart-reference/magento/latest/templates/magento-master.template)
   * An existing VPC - [![cloudformation-launch-stack](images/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/new?stackName=Magento&templateURL=https://s3.amazonaws.com/quickstart-reference/magento/latest/templates/magento.template)
 
-![architecture-overview](images/aws-refarch-wordpress-v20170418.jpg)
+## Overview
+![architecture-overview](images/aws-refarch-magento.png)
 
 This reference architecture deploys Magento using AWS CloudFormation templates and offers two options: you can build a new AWS infrastructure for your Magento stack, or deploy Magento into your existing AWS infrastructure. The deployment uses MySQL on Amazon RDS for database operations, Amazon EFS for shared storage between EC2 instances, and an Amazon ElastiCache cluster with the Redis cache engine to improve application load times. The Magento stack deployed using the templates provided here comes with Amazon Pay plugin,  pre-installed.
 
