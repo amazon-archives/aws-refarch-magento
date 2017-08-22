@@ -1,0 +1,1407 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Magento 2.1 Web Server Template",
+    "Parameters": {
+        "AdminEmail": {
+            "Description": "Email of the Magento site administrator",
+            "Type": "String"
+        },
+        "AdminFirstName": {
+            "Description": "First Name of the Magento site administrator",
+            "Type": "String"
+        },
+        "AdminLastName": {
+            "Description": "Last Name of the Magento site administrator",
+            "Type": "String"
+        },
+        "AdminPassword": {
+            "AllowedPattern": "(?=^.{6,255}$)((?=.*\\d)(?=.*[A-Z])(?=.*[a-z])|(?=.*\\d)(?=.*[^A-Za-z0-9])(?=.*[a-z])|(?=.*[^A-Za-z0-9])(?=.*[A-Z])(?=.*[a-z])|(?=.*\\d)(?=.*[A-Z])(?=.*[^A-Za-z0-9]))^.*",
+            "Description": "Password of the Magento site administrator",
+            "MaxLength": "32",
+            "MinLength": "8",
+            "NoEcho": "True",
+            "Type": "String"
+        },
+        "AdminUserName": {
+            "Description": "Username of the Magento site administrator",
+            "Type": "String"
+        },
+        "DBMasterUserPassword": {
+            "AllowedPattern": "(?=^.{6,255}$)((?=.*\\d)(?=.*[A-Z])(?=.*[a-z])|(?=.*\\d)(?=.*[^A-Za-z0-9])(?=.*[a-z])|(?=.*[^A-Za-z0-9])(?=.*[A-Z])(?=.*[a-z])|(?=.*\\d)(?=.*[A-Z])(?=.*[^A-Za-z0-9]))^.*",
+            "Default": "Admin-123456",
+            "Description": "RDS MySQL Database Password",
+            "NoEcho": "True",
+            "Type": "String"
+        },
+        "DBMasterUsername": {
+            "Default": "admin",
+            "Description": "RDS MySQL Database Username",
+            "Type": "String"
+        },
+        "DBName": {
+            "Default": "",
+            "Description": "RDS MySQL Database Name",
+            "Type": "String"
+        },
+        "DNSName": {
+            "Default": "",
+            "Description": "DNS Name for the magento site, you should create an alias for the ELB after the stack creation",
+            "Type": "String"
+        },
+        "EFSSecurityGroup": {
+            "Description": "EFS Security Group",
+            "Type": "AWS::EC2::SecurityGroup::Id"
+        },
+        "ELBSecurityGroup": {
+            "Description": "ELB Security Group",
+            "Type": "AWS::EC2::SecurityGroup::Id"
+        },
+        "ElastiCacheEndpoint": {
+            "Default": "",
+            "Description": "ElastiCache Endpoint",
+            "Type": "String"
+        },
+        "ElasticLoadBalancerSubnets": {
+            "ConstraintDescription": "Must be list of existing Public subnet Ids",
+            "Default": "",
+            "Description": "A list of public subnet identifiers of Amazon VPCs where the ElasticLoadBalancer would be launched.",
+            "Type": "List<AWS::EC2::Subnet::Id>"
+        },
+        "KeyPair": {
+            "ConstraintDescription": "Must be the name of an existing EC2 KeyPair.",
+            "Default": "id_rsa_aws",
+            "Description": "Name of an existing EC2 KeyPair to enable SSH access to the instances",
+            "Type": "AWS::EC2::KeyPair::KeyName"
+        },
+        "MagentoCurrency": {
+            "Default": "EUR",
+            "Description": "Magento Currency",
+            "Type": "String"
+        },
+        "MagentoLanguage": {
+            "Default": "en_US",
+            "Description": "Magento Language",
+            "Type": "String"
+        },
+        "MagentoTimezone": {
+            "Default": "Europe/Lisbon",
+            "Description": "Magento Timezone",
+            "Type": "String"
+        },
+        "MagentoReleaseMedia": {
+            "Default": "",
+            "Description": "Amazon S3 path to download magento .tar.gz file (https://s3.amazonaws.com/mybucket/Magento-CE-2_1_3_sample_data_tar_gz-2016-12-13-09-27-46.tar.gz)",
+            "Type": "String"
+        },
+        "MySQLEndPointAddress": {
+            "Default": "",
+            "Description": "RDS MySQL Endpoint",
+            "Type": "String"
+        },
+        "NotificationEmail": {
+            "AllowedPattern": "([a-zA-Z0-9_\\-\\.]+)@((\\[[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.)|(([a-zA-Z0-9\\-]+\\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\\]?)",
+            "ConstraintDescription": "Must be a valid email address.",
+            "Description": "Email address to notify if there are any scaling operations",
+            "Type": "String"
+        },
+        "QSS3BucketName": {
+            "AllowedPattern": "^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$",
+            "ConstraintDescription": "AWS Quick Start bucket name can include numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen (-).",
+            "Default": "quickstart-reference",
+            "Description": "S3 bucket name for the AWS Quick Start assets. AWS Quick Start bucket name can include numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen (-).",
+            "Type": "String"
+        },
+        "QSS3KeyPrefix": {
+            "AllowedPattern": "^[0-9a-zA-Z-]+(/[0-9a-zA-Z-]+)*$",
+            "ConstraintDescription": "AWS Quick Start key prefix can include numbers, lowercase letters, uppercase letters, hyphens (-), and forward slash (/). It cannot start or end with forward slash (/) because they are automatically appended.",
+            "Default": "magento/latest",
+            "Description": "S3 key prefix for the AWS Quick Start assets. AWS Quick Start key prefix can include numbers, lowercase letters, uppercase letters, hyphens (-), and forward slash (/). It cannot start or end with forward slash (/) because they are automatically appended.",
+            "Type": "String"
+        },
+        "SSLCertificateId": {
+            "Default": "",
+            "Description": "The ARN of the SSL certificate to use for the webserver. [optional]",
+            "Type": "String"
+        },
+        "VPCID": {
+            "Description": "VPC ID",
+            "Type": "AWS::EC2::VPC::Id"
+        },
+        "WebServerDesiredCapacity": {
+            "Default": "1",
+            "Description": "Desired No of web server instances",
+            "Type": "Number"
+        },
+        "WebServerInstanceType": {
+            "AllowedValues": [
+                "t2.micro",
+                "t2.small",
+                "t2.medium",
+                "t2.large",
+                "m4.large",
+                "m4.xlarge",
+                "m4.2xlarge",
+                "m4.4xlarge",
+                "m4.10xlarge",
+                "m3.medium",
+                "m3.large",
+                "m3.xlarge",
+                "m3.2xlarge",
+                "c4.large",
+                "c4.xlarge",
+                "c4.2xlarge",
+                "c4.4xlarge",
+                "c4.8xlarge",
+                "c3.large",
+                "c3.xlarge",
+                "c3.2xlarge",
+                "c3.4xlarge",
+                "c3.8xlarge",
+                "r3.large",
+                "r3.xlarge",
+                "r3.2xlarge",
+                "r3.4xlarge",
+                "r3.8xlarge",
+                "i2.xlarge",
+                "i2.2xlarge",
+                "i2.4xlarge",
+                "i2.8xlarge"
+            ],
+            "ConstraintDescription": "Choose an instance type.",
+            "Default": "m4.large",
+            "Description": "Web Server node instance type",
+            "Type": "String"
+        },
+        "WebServerMaxSize": {
+            "Default": "1",
+            "Description": "Maximum No of web server instances",
+            "Type": "Number"
+        },
+        "WebServerMinSize": {
+            "Default": "1",
+            "Description": "Minimum No of web server instances",
+            "Type": "Number"
+        },
+        "WebServerSecurityGroup": {
+            "Description": "Web Server Security Group",
+            "Type": "AWS::EC2::SecurityGroup::Id"
+        },
+        "WebServerSubnets": {
+            "ConstraintDescription": "must be list of existing subnet Ids",
+            "Default": "",
+            "Description": "A list of subnet identifiers of Amazon VPCs where the WebServer Autoscaling would be launched.",
+            "Type": "List<AWS::EC2::Subnet::Id>"
+        }
+    },
+    "Mappings": {
+        "AWSAMIRegionMap": {
+            "AMI": {
+                "AMZNLINUXHVM": "amzn-ami-hvm-2017.03.1.20170812-x86_64-gp2"
+            },
+            "ap-northeast-1": {
+                "AMZNLINUXHVM": "ami-4af5022c"
+            },
+            "ap-northeast-2": {
+                "AMZNLINUXHVM": "ami-8663bae8"
+            },
+            "ap-south-1": {
+                "AMZNLINUXHVM": "ami-d7abd1b8"
+            },
+            "ap-southeast-1": {
+                "AMZNLINUXHVM": "ami-fdb8229e"
+            },
+            "ap-southeast-2": {
+                "AMZNLINUXHVM": "ami-30041c53"
+            },
+            "ca-central-1": {
+                "AMZNLINUXHVM": "ami-5ac17f3e"
+            },
+            "eu-central-1": {
+                "AMZNLINUXHVM": "ami-657bd20a"
+            },
+            "eu-west-1": {
+                "AMZNLINUXHVM": "ami-ebd02392"
+            },
+            "eu-west-2": {
+                "AMZNLINUXHVM": "ami-489f8e2c"
+            },
+            "sa-east-1": {
+                "AMZNLINUXHVM": "ami-d27203be"
+            },
+            "us-east-1": {
+                "AMZNLINUXHVM": "ami-4fffc834"
+            },
+            "us-east-2": {
+                "AMZNLINUXHVM": "ami-ea87a78f"
+            },
+            "us-west-1": {
+                "AMZNLINUXHVM": "ami-3a674d5a"
+            },
+            "us-west-2": {
+                "AMZNLINUXHVM": "ami-aa5ebdd2"
+            }
+        },
+        "AWSInfoRegionMap": {
+            "ap-northeast-1": {
+                "Partition": "aws",
+                "QuickStartS3URL": "https://s3.amazonaws.com"
+            },
+            "ap-northeast-2": {
+                "Partition": "aws",
+                "QuickStartS3URL": "https://s3.amazonaws.com"
+            },
+            "ap-south-1": {
+                "Partition": "aws",
+                "QuickStartS3URL": "https://s3.amazonaws.com"
+            },
+            "ap-southeast-1": {
+                "Partition": "aws",
+                "QuickStartS3URL": "https://s3.amazonaws.com"
+            },
+            "ap-southeast-2": {
+                "Partition": "aws",
+                "QuickStartS3URL": "https://s3.amazonaws.com"
+            },
+            "ca-central-1": {
+                "Partition": "aws",
+                "QuickStartS3URL": "https://s3.amazonaws.com"
+            },
+            "eu-central-1": {
+                "Partition": "aws",
+                "QuickStartS3URL": "https://s3.amazonaws.com"
+            },
+            "eu-west-1": {
+                "Partition": "aws",
+                "QuickStartS3URL": "https://s3.amazonaws.com"
+            },
+            "sa-east-1": {
+                "Partition": "aws",
+                "QuickStartS3URL": "https://s3.amazonaws.com"
+            },
+            "us-east-1": {
+                "Partition": "aws",
+                "QuickStartS3URL": "https://s3.amazonaws.com"
+            },
+            "us-east-2": {
+                "Partition": "aws",
+                "QuickStartS3URL": "https://s3.amazonaws.com"
+            },
+            "us-gov-west-1": {
+                "Partition": "aws-us-gov",
+                "QuickStartS3URL": "https://s3-us-gov-west-1.amazonaws.com"
+            },
+            "us-west-1": {
+                "Partition": "aws",
+                "QuickStartS3URL": "https://s3.amazonaws.com"
+            },
+            "us-west-2": {
+                "Partition": "aws",
+                "QuickStartS3URL": "https://s3.amazonaws.com"
+            }
+        }
+    },
+    "Conditions": {
+        "AllowNotificationEmail": {
+            "Fn::Not": [
+                {
+                    "Fn::Equals": [
+                        {
+                            "Ref": "NotificationEmail"
+                        },
+                        ""
+                    ]
+                }
+            ]
+        },
+        "DontUseSSL": {
+            "Fn::Equals": [
+                {
+                    "Ref": "SSLCertificateId"
+                },
+                ""
+            ]
+        },
+        "UseELBName": {
+            "Fn::Equals": [
+                {
+                    "Ref": "DNSName"
+                },
+                ""
+            ]
+        }
+    },
+    "Resources": {
+        "NotificationTopic": {
+            "Type": "AWS::SNS::Topic",
+            "Properties": {
+                "Subscription": [
+                    {
+                        "Endpoint": {
+                            "Ref": "NotificationEmail"
+                        },
+                        "Protocol": "email"
+                    }
+                ]
+            }
+        },
+        "WebServerScaleUpPolicy": {
+            "Type": "AWS::AutoScaling::ScalingPolicy",
+            "Properties": {
+                "AdjustmentType": "ChangeInCapacity",
+                "AutoScalingGroupName": {
+                    "Ref": "WebServerAsg"
+                },
+                "Cooldown": "60",
+                "ScalingAdjustment": "1"
+            }
+        },
+        "WebServerScaleDownPolicy": {
+            "Type": "AWS::AutoScaling::ScalingPolicy",
+            "Properties": {
+                "AdjustmentType": "ChangeInCapacity",
+                "AutoScalingGroupName": {
+                    "Ref": "WebServerAsg"
+                },
+                "Cooldown": "60",
+                "ScalingAdjustment": "-1"
+            }
+        },
+        "CPUAlarmHigh": {
+            "Type": "AWS::CloudWatch::Alarm",
+            "Properties": {
+                "AlarmDescription": "Scale-up if CPU > 90% for 10 minutes",
+                "MetricName": "CPUUtilization",
+                "Namespace": "AWS/EC2",
+                "Statistic": "Average",
+                "Period": "300",
+                "EvaluationPeriods": "2",
+                "Threshold": "90",
+                "AlarmActions": [
+                    {
+                        "Ref": "WebServerScaleUpPolicy"
+                    }
+                ],
+                "Dimensions": [
+                    {
+                        "Name": "AutoScalingGroupName",
+                        "Value": {
+                            "Ref": "WebServerAsg"
+                        }
+                    }
+                ],
+                "ComparisonOperator": "GreaterThanThreshold"
+            }
+        },
+        "CPUAlarmLow": {
+            "Type": "AWS::CloudWatch::Alarm",
+            "Properties": {
+                "AlarmDescription": "Scale-down if CPU < 70% for 10 minutes",
+                "MetricName": "CPUUtilization",
+                "Namespace": "AWS/EC2",
+                "Statistic": "Average",
+                "Period": "300",
+                "EvaluationPeriods": "2",
+                "Threshold": "70",
+                "AlarmActions": [
+                    {
+                        "Ref": "WebServerScaleDownPolicy"
+                    }
+                ],
+                "Dimensions": [
+                    {
+                        "Name": "AutoScalingGroupName",
+                        "Value": {
+                            "Ref": "WebServerAsg"
+                        }
+                    }
+                ],
+                "ComparisonOperator": "LessThanThreshold"
+            }
+        },
+        "MagentoMainLogGroup": {
+            "Type": "AWS::Logs::LogGroup"
+        },
+        "NewIamInstanceRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": [
+                                    "ec2.amazonaws.com"
+                                ]
+                            },
+                            "Action": [
+                                "sts:AssumeRole"
+                            ]
+                        }
+                    ]
+                },
+                "Path": "/",
+                "Policies": [
+                    {
+                        "PolicyName": "Instance-Limited-Role",
+                        "PolicyDocument": {
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "logs:CreateLogGroup",
+                                        "logs:CreateLogStream",
+                                        "logs:PutLogEvents",
+                                        "logs:DescribeLogStreams"
+                                    ],
+                                    "Resource": {
+                                        "Fn::Join": [
+                                            "",
+                                            [
+                                                "arn:",
+                                                {
+                                                    "Fn::FindInMap": [
+                                                        "AWSInfoRegionMap",
+                                                        {
+                                                            "Ref": "AWS::Region"
+                                                        },
+                                                        "Partition"
+                                                    ]
+                                                },
+                                                ":logs:",
+                                                {
+                                                    "Ref": "AWS::Region"
+                                                },
+                                                ":*:",
+                                                {
+                                                    "Ref": "MagentoMainLogGroup"
+                                                },
+                                                ":*"
+                                            ]
+                                        ]
+                                    }
+                                },
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "s3:*"
+                                    ],
+                                    "Resource": "*"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        "NewIamInstanceProfile": {
+            "Type": "AWS::IAM::InstanceProfile",
+            "Properties": {
+                "Path": "/",
+                "Roles": [
+                    {
+                        "Ref": "NewIamInstanceRole"
+                    }
+                ]
+            }
+        },
+        "WebServerAsg": {
+            "Type": "AWS::AutoScaling::AutoScalingGroup",
+            "Properties": {
+                "LaunchConfigurationName": {
+                    "Ref": "WebServerLC"
+                },
+                "MinSize": {
+                    "Ref": "WebServerMinSize"
+                },
+                "MaxSize": {
+                    "Ref": "WebServerMaxSize"
+                },
+                "DesiredCapacity": {
+                    "Ref": "WebServerDesiredCapacity"
+                },
+                "LoadBalancerNames": [
+                    {
+                        "Ref": "ElasticLoadBalancer"
+                    }
+                ],
+                "VPCZoneIdentifier": {
+                    "Ref": "WebServerSubnets"
+                },
+                "NotificationConfiguration": {
+                    "TopicARN": {
+                        "Ref": "NotificationTopic"
+                    },
+                    "NotificationTypes": [
+                        "autoscaling:EC2_INSTANCE_LAUNCH",
+                        "autoscaling:EC2_INSTANCE_LAUNCH_ERROR",
+                        "autoscaling:EC2_INSTANCE_TERMINATE",
+                        "autoscaling:EC2_INSTANCE_TERMINATE_ERROR"
+                    ]
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": {
+                            "Fn::Join": [
+                                "-",
+                                [
+                                    {
+                                        "Ref": "AWS::StackName"
+                                    },
+                                    "Web Server"
+                                ]
+                            ]
+                        },
+                        "PropagateAtLaunch": "true"
+                    }
+                ]
+            }
+        },
+        "WebServerLC": {
+            "Type": "AWS::AutoScaling::LaunchConfiguration",
+            "DependsOn": "CreateAMI",
+            "Properties": {
+                "ImageId": {
+                    "Fn::GetAtt": [
+                        "CreateAMI",
+                        "ami"
+                    ]
+                },
+                "InstanceType": {
+                    "Ref": "WebServerInstanceType"
+                },
+                "SecurityGroups": [
+                    {
+                        "Ref": "WebServerSecurityGroup"
+                    }
+                ],
+                "IamInstanceProfile": {
+                    "Ref": "NewIamInstanceProfile"
+                },
+                "KeyName": {
+                    "Ref": "KeyPair"
+                },
+                "UserData": {
+                    "Fn::Base64": {
+                        "Fn::Join": [
+                            "",
+                            [
+                                "#cloud-config\n",
+                                "runcmd:\n",
+                                "- echo \"",
+                                {
+                                    "Ref": "FileSystem"
+                                },
+                                ".efs.",
+                                {
+                                    "Ref": "AWS::Region"
+                                },
+                                ".amazonaws.com:/    /var/www/html/pub/media   nfs4    defaults\" >> /etc/fstab\n",
+                                "- mount -a\n"
+                            ]
+                        ]
+                    }
+                }
+            }
+        },
+        "FileSystem": {
+            "Type": "AWS::EFS::FileSystem",
+            "Properties": {
+                "PerformanceMode": "generalPurpose",
+                "FileSystemTags": [
+                    {
+                        "Key": "Name",
+                        "Value": "EFS AWS Quick Start"
+                    }
+                ]
+            }
+        },
+        "MountTarget1": {
+            "Type": "AWS::EFS::MountTarget",
+            "Properties": {
+                "FileSystemId": {
+                    "Ref": "FileSystem"
+                },
+                "SubnetId": {
+                    "Fn::Select": [
+                        "0",
+                        {
+                            "Ref": "WebServerSubnets"
+                        }
+                    ]
+                },
+                "SecurityGroups": [
+                    {
+                        "Ref": "EFSSecurityGroup"
+                    }
+                ]
+            }
+        },
+        "MountTarget2": {
+            "Type": "AWS::EFS::MountTarget",
+            "Properties": {
+                "FileSystemId": {
+                    "Ref": "FileSystem"
+                },
+                "SubnetId": {
+                    "Fn::Select": [
+                        "1",
+                        {
+                            "Ref": "WebServerSubnets"
+                        }
+                    ]
+                },
+                "SecurityGroups": [
+                    {
+                        "Ref": "EFSSecurityGroup"
+                    }
+                ]
+            }
+        },
+        "MagentoAMIWaitHandle": {
+            "Type": "AWS::CloudFormation::WaitConditionHandle"
+        },
+        "MagentoAMIWaitCondition": {
+            "Type": "AWS::CloudFormation::WaitCondition",
+            "DependsOn": "MagentoAMI",
+            "Properties": {
+                "Handle": {
+                    "Ref": "MagentoAMIWaitHandle"
+                },
+                "Timeout": "3600"
+            }
+        },
+        "MagentoAMI": {
+            "Type": "AWS::EC2::Instance",
+            "DependsOn": [
+                "MountTarget1",
+                "MountTarget2"
+            ],
+            "Metadata": {
+                "Comment": "Install a Magento web server",
+                "AWS::CloudFormation::Authentication": {
+                    "S3AccessCreds": {
+                        "type": "S3",
+                        "roleName": {
+                            "Ref": "NewIamInstanceRole"
+                        }
+                    }
+                },
+                "AWS::CloudFormation::Init": {
+                    "config": {
+                        "packages": {
+                            "yum": {
+                                "nfs-utils": [],
+                                "awslogs": []
+                            }
+                        },
+                        "files": {
+                            "/etc/awslogs/awslogs.conf": {
+                                "content": {
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            "[general]\n",
+                                            "state_file= /var/log/agent-state\n",
+                                            "[/home/ec2-user/misc/install]\n",
+                                            "file = /var/log/cloud-init-output.log\n",
+                                            "log_group_name = magento_install\n",
+                                            "log_stream_name = {instance_id}/magento/install.log\n"
+                                        ]
+                                    ]
+                                },
+                                "mode": "000400",
+                                "owner": "root",
+                                "group": "root"
+                            },
+                            "/etc/awslogs/awscli.conf": {
+                                "content": {
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            "[plugins]\n",
+                                            "cwlogs = cwlogs\n",
+                                            "[default]\n",
+                                            "region = ",
+                                            {
+                                                "Ref": "AWS::Region"
+                                            },
+                                            "\n"
+                                        ]
+                                    ]
+                                },
+                                "mode": "000400",
+                                "owner": "root",
+                                "group": "root"
+                            },
+                            "/etc/cfn/cfn-hup.conf": {
+                                "content": {
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            "[main]\n",
+                                            "stack=",
+                                            {
+                                                "Ref": "AWS::StackId"
+                                            },
+                                            "\n",
+                                            "region=",
+                                            {
+                                                "Ref": "AWS::Region"
+                                            },
+                                            "\n"
+                                        ]
+                                    ]
+                                },
+                                "mode": "000400",
+                                "owner": "root",
+                                "group": "root"
+                            },
+                            "/etc/cfn/hooks.d/cfn-auto-reloader.conf": {
+                                "content": {
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            "[cfn-auto-reloader-hook]\n",
+                                            "triggers=post.update\n",
+                                            "path=Resources.LaunchConfig.Metadata.AWS::CloudFormation::Init\n",
+                                            "action=/opt/aws/bin/cfn-init -v ",
+                                            "         --stack ",
+                                            {
+                                                "Ref": "AWS::StackName"
+                                            },
+                                            "         --resource LaunchConfig ",
+                                            "         --region ",
+                                            {
+                                                "Ref": "AWS::Region"
+                                            },
+                                            "\n",
+                                            "runas=root\n"
+                                        ]
+                                    ]
+                                }
+                            },
+                            "/install_magento.sh": {
+                                "source": {
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            "https://",
+                                            {
+                                                "Ref": "QSS3BucketName"
+                                            },
+                                            ".s3.amazonaws.com/",
+                                            {
+                                                "Ref": "QSS3KeyPrefix"
+                                            },
+                                            "/scripts/install_magento.sh"
+                                        ]
+                                    ]
+                                },
+                                "mode": "000644",
+                                "owner": "root",
+                                "group": "root",
+                                "authentication": "S3AccessCreds"
+                            },
+                            "/configure_magento.sh": {
+                                "source": {
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            "https://",
+                                            {
+                                                "Ref": "QSS3BucketName"
+                                            },
+                                            ".s3.amazonaws.com/",
+                                            {
+                                                "Ref": "QSS3KeyPrefix"
+                                            },
+                                            "/scripts/configure_magento.sh"
+                                        ]
+                                    ]
+                                },
+                                "mode": "000644",
+                                "owner": "root",
+                                "group": "root",
+                                "authentication": "S3AccessCreds"
+                            },
+                            "/home/ec2-user/magento.tar.gz": {
+                                "source": {
+                                    "Ref": "MagentoReleaseMedia"
+                                },
+                                "mode": "000644",
+                                "owner": "root",
+                                "group": "root",
+                                "authentication": "S3AccessCreds"
+                            },
+                            "/tmp/params.txt": {
+                                "content": {
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            "MySQLEndPointAddress|",
+                                            {
+                                                "Ref": "MySQLEndPointAddress"
+                                            },
+                                            "\n",
+                                            "DBMasterUsername|",
+                                            {
+                                                "Ref": "DBMasterUsername"
+                                            },
+                                            "\n",
+                                            "DBMasterUserPassword|",
+                                            {
+                                                "Ref": "DBMasterUserPassword"
+                                            },
+                                            "\n",
+                                            "DBName|",
+                                            {
+                                                "Ref": "DBName"
+                                            },
+                                            "\n",
+                                            "DNSName|",
+                                            {
+                                                "Fn::If": [
+                                                    "UseELBName",
+                                                    {
+                                                        "Fn::GetAtt": [
+                                                            "ElasticLoadBalancer",
+                                                            "DNSName"
+                                                        ]
+                                                    },
+                                                    {
+                                                        "Ref": "DNSName"
+                                                    }
+                                                ]
+                                            },
+                                            "\n",
+                                            "AdminFirstName|",
+                                            {
+                                                "Ref": "AdminFirstName"
+                                            },
+                                            "\n",
+                                            "AdminLastName|",
+                                            {
+                                                "Ref": "AdminLastName"
+                                            },
+                                            "\n",
+                                            "AdminEmail|",
+                                            {
+                                                "Ref": "AdminEmail"
+                                            },
+                                            "\n",
+                                            "AdminUserName|",
+                                            {
+                                                "Ref": "AdminUserName"
+                                            },
+                                            "\n",
+                                            "AdminPassword|",
+                                            {
+                                                "Ref": "AdminPassword"
+                                            },
+                                            "\n",
+                                            "ElastiCacheEndpoint|",
+                                            {
+                                                "Ref": "ElastiCacheEndpoint"
+                                            },
+                                            "\n",
+                                            "FileSystem|",
+                                            {
+                                                "Ref": "FileSystem"
+                                            },
+                                            "\n",
+                                            "MagentoReleaseMedia|",
+                                            {
+                                                "Ref": "MagentoReleaseMedia"
+                                            },
+                                            "\n",
+                                            "SSLCertificateId|",
+                                            {
+                                                "Ref": "SSLCertificateId"
+                                            },
+                                            "\n",
+                                            "MagentoLanguage|",
+                                            {
+                                                "Ref": "MagentoLanguage"
+                                            },
+                                            "\n",
+                                            "MagentoCurrency|",
+                                            {
+                                                "Ref": "MagentoCurrency"
+                                            },
+                                            "\n",
+                                            "MagentoTimezone|",
+                                            {
+                                                "Ref": "MagentoTimezone"
+                                            },
+                                            "\n"
+                                        ]
+                                    ]
+                                },
+                                "mode": "000440",
+                                "owner": "root",
+                                "group": "root"
+                            }
+                        },
+                        "services": {
+                            "sysvinit": {
+                                "cfn-hup": {
+                                    "enabled": "true",
+                                    "ensureRunning": "true",
+                                    "files": [
+                                        "/etc/cfn/cfn-hup.conf",
+                                        "/etc/cfn/hooks.d/cfn-auto-reloader.conf"
+                                    ]
+                                },
+                                "awslogs": {
+                                    "enabled": "true",
+                                    "ensureRunning": "true",
+                                    "files": [
+                                        "/etc/awslogs/awslogs.conf"
+                                    ],
+                                    "packages": {
+                                        "yum": [
+                                            "awslogs"
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "Properties": {
+                "KeyName": {
+                    "Ref": "KeyPair"
+                },
+                "IamInstanceProfile": {
+                    "Ref": "NewIamInstanceProfile"
+                },
+                "ImageId": {
+                    "Fn::FindInMap": [
+                        "AWSAMIRegionMap",
+                        {
+                            "Ref": "AWS::Region"
+                        },
+                        "AMZNLINUXHVM"
+                    ]
+                },
+                "InstanceType": {
+                    "Ref": "WebServerInstanceType"
+                },
+                "SubnetId": {
+                    "Fn::Select": [
+                        "0",
+                        {
+                            "Ref": "WebServerSubnets"
+                        }
+                    ]
+                },
+                "SecurityGroupIds": [
+                    {
+                        "Ref": "WebServerSecurityGroup"
+                    }
+                ],
+                "UserData": {
+                    "Fn::Base64": {
+                        "Fn::Join": [
+                            "",
+                            [
+                                "#!/bin/bash\n",
+                                "/opt/aws/bin/cfn-init -v --stack ",
+                                {
+                                    "Ref": "AWS::StackName"
+                                },
+                                " --resource MagentoAMI ",
+                                " --region ",
+                                {
+                                    "Ref": "AWS::Region"
+                                },
+                                "\n",
+                                "chmod a+x install_magento.sh\n",
+                                "./install_magento.sh /tmp/params.txt\n",
+                                "/opt/aws/bin/cfn-signal -e $? -d \"`cat /home/ec2-user/adminuri`\" -r \"Build Process Complete\" '",
+                                {
+                                    "Ref": "MagentoAMIWaitHandle"
+                                },
+                                "'\n"
+                            ]
+                        ]
+                    }
+                },
+                "Tags": [
+                    {
+                        "Key": "Application",
+                        "Value": "AWS Quick Start (Magento)"
+                    },
+                    {
+                        "Key": "Name",
+                        "Value": "MagentoAMI (AWS Quick Start)"
+                    }
+                ]
+            }
+        },
+        "AMIInfoFunctionExecutionRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": [
+                                    "lambda.amazonaws.com"
+                                ]
+                            },
+                            "Action": [
+                                "sts:AssumeRole"
+                            ]
+                        }
+                    ]
+                },
+                "Path": "/",
+                "Policies": [
+                    {
+                        "PolicyName": "root",
+                        "PolicyDocument": {
+                            "Version": "2012-10-17",
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "logs:CreateLogGroup",
+                                        "logs:CreateLogStream",
+                                        "logs:PutLogEvents"
+                                    ],
+                                    "Resource": {
+                                        "Fn::Join": [
+                                            "",
+                                            [
+                                                "arn:",
+                                                {
+                                                    "Fn::FindInMap": [
+                                                        "AWSInfoRegionMap",
+                                                        {
+                                                            "Ref": "AWS::Region"
+                                                        },
+                                                        "Partition"
+                                                    ]
+                                                },
+                                                ":logs:",
+                                                {
+                                                    "Ref": "AWS::Region"
+                                                },
+                                                ":*:",
+                                                {
+                                                    "Ref": "MagentoMainLogGroup"
+                                                },
+                                                ":*"
+                                            ]
+                                        ]
+                                    }
+                                },
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "ec2:Describe*",
+                                        "ec2:StopInstances",
+                                        "ec2:CreateImage",
+                                        "ec2:DeregisterImage"
+                                    ],
+                                    "Resource": "*"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        "AMIInfoFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+                "Handler": "index.lambda_handler",
+                "Runtime": "python2.7",
+                "Timeout": "300",
+                "Role": {
+                    "Fn::GetAtt": [
+                        "AMIInfoFunctionExecutionRole",
+                        "Arn"
+                    ]
+                },
+                "Code": {
+                    "ZipFile": {
+                        "Fn::Join": [
+                            "\n",
+                            [
+                                "import json",
+                                "import cfnresponse",
+                                "import boto3",
+                                "from random import randint",
+                                "def lambda_handler(event, context):",
+                                "  if event['RequestType'] == 'Delete':",
+                                "    cfnresponse.send(event, context, cfnresponse.SUCCESS, {})",
+                                "    return",
+                                "  try:",
+                                "    ec2 = boto3.resource('ec2')",
+                                "    instance = ec2.Instance(event['ResourceProperties']['InstanceId'])",
+                                "    instance.stop()",
+                                "    instance.wait_until_stopped()",
+                                "    image = instance.create_image(Name=\"%s-%i\" % (event['ResourceProperties']['AMIName'], randint(0,100000)), Description=\"Created with Cloudformation\")",
+                                "    boto3.client('ec2').get_waiter('image_available').wait(ImageIds=[image.id])",
+                                "    responseData = {'ami':image.id}",
+                                "    cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)",
+                                "  except Exception as inst:",
+                                "    print(inst)",
+                                "    cfnresponse.send(event, context, cfnresponse.FAILED, {})"
+                            ]
+                        ]
+                    }
+                }
+            }
+        },
+        "AMICleanUpFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+                "Handler": "index.lambda_handler",
+                "Runtime": "python2.7",
+                "Timeout": "300",
+                "Role": {
+                    "Fn::GetAtt": [
+                        "AMIInfoFunctionExecutionRole",
+                        "Arn"
+                    ]
+                },
+                "Code": {
+                    "ZipFile": {
+                        "Fn::Join": [
+                            "\n",
+                            [
+                                "import json",
+                                "import cfnresponse",
+                                "import boto3",
+                                "from random import randint",
+                                "def lambda_handler(event, context):",
+                                "  if event['RequestType'] == 'Delete':",
+                                "    try:",
+                                "      ec2 = boto3.resource('ec2')",
+                                "      image = ec2.Image(event['ResourceProperties']['AMIId'])",
+                                "      image.deregister()",
+                                "      cfnresponse.send(event, context, cfnresponse.SUCCESS, {})",
+                                "    except Exception as inst:",
+                                "      print(inst)",
+                                "      cfnresponse.send(event, context, cfnresponse.FAILED, {})",
+                                "  else:",
+                                "    cfnresponse.send(event, context, cfnresponse.SUCCESS, {})"
+                            ]
+                        ]
+                    }
+                }
+            }
+        },
+        "CreateAMI": {
+            "Type": "Custom::CreateAMI",
+            "DeletionPolicy": "Retain",
+            "DependsOn": "MagentoAMIWaitCondition",
+            "Properties": {
+                "ServiceToken": {
+                    "Fn::GetAtt": [
+                        "AMIInfoFunction",
+                        "Arn"
+                    ]
+                },
+                "InstanceId": {
+                    "Ref": "MagentoAMI"
+                },
+                "AMIName": "MagentoAMI",
+                "Version": 1
+            }
+        },
+        "CleanUpAMI": {
+            "Type": "Custom::CleanUpAMI",
+            "Properties": {
+                "ServiceToken": {
+                    "Fn::GetAtt": [
+                        "AMICleanUpFunction",
+                        "Arn"
+                    ]
+                },
+                "AMIId": {
+                    "Fn::GetAtt": [
+                        "CreateAMI",
+                        "ami"
+                    ]
+                },
+                "Version": 1
+            }
+        },
+        "ElasticLoadBalancer": {
+            "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+            "Properties": {
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "ELBQuickStart"
+                    }
+                ],
+                "Subnets": {
+                    "Ref": "ElasticLoadBalancerSubnets"
+                },
+                "SecurityGroups": [
+                    {
+                        "Ref": "ELBSecurityGroup"
+                    }
+                ],
+                "CrossZone": "true",
+                "Listeners": [
+                    {
+                        "LoadBalancerPort": {
+                            "Fn::If": [
+                                "DontUseSSL",
+                                "80",
+                                "443"
+                            ]
+                        },
+                        "InstancePort": {
+                            "Fn::If": [
+                                "DontUseSSL",
+                                "80",
+                                "443"
+                            ]
+                        },
+                        "Protocol": {
+                            "Fn::If": [
+                                "DontUseSSL",
+                                "HTTP",
+                                "HTTPS"
+                            ]
+                        },
+                        "InstanceProtocol": {
+                            "Fn::If": [
+                                "DontUseSSL",
+                                "HTTP",
+                                "HTTPS"
+                            ]
+                        },
+                        "SSLCertificateId": {
+                            "Fn::If": [
+                                "DontUseSSL",
+                                {
+                                    "Ref": "AWS::NoValue"
+                                },
+                                {
+                                    "Ref": "SSLCertificateId"
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "HealthCheck": {
+                    "Target": {
+                        "Fn::Join": [
+                            "",
+                            [
+                                {
+                                    "Fn::If": [
+                                        "DontUseSSL",
+                                        "HTTP",
+                                        "HTTPS"
+                                    ]
+                                },
+                                ":",
+                                {
+                                    "Fn::If": [
+                                        "DontUseSSL",
+                                        "80",
+                                        "443"
+                                    ]
+                                },
+                                "/health"
+                            ]
+                        ]
+                    },
+                    "HealthyThreshold": "3",
+                    "UnhealthyThreshold": "5",
+                    "Interval": "30",
+                    "Timeout": "5"
+                },
+                "ConnectionDrainingPolicy": {
+                    "Enabled": "true",
+                    "Timeout": "60"
+                }
+            }
+        }
+    },
+    "Outputs": {
+        "URL": {
+            "Description": "The URL of the website",
+            "Value": {
+                "Fn::Join": [
+                    "",
+                    [
+                        {
+                            "Fn::If": [
+                                "DontUseSSL",
+                                "http",
+                                "https"
+                            ]
+                        },
+                        "://",
+                        {
+                            "Fn::If": [
+                                "UseELBName",
+                                {
+                                    "Fn::GetAtt": [
+                                        "ElasticLoadBalancer",
+                                        "DNSName"
+                                    ]
+                                },
+                                {
+                                    "Ref": "DNSName"
+                                }
+                            ]
+                        }
+                    ]
+                ]
+            }
+        },
+        "ELBURL": {
+            "Description": "The URL of the ELB, you should create a CNAME or alias to this name if you specified a DNS name",
+            "Value": {
+                "Fn::GetAtt": [
+                    "ElasticLoadBalancer",
+                    "DNSName"
+                ]
+            }
+        },
+        "AdminURL": {
+            "Description": "Admin path",
+            "Value": {
+                "Fn::Select": [
+                    "0",
+                    {
+                        "Fn::Split": [
+                            "\"",
+                            {
+                                "Fn::Select": [
+                                    "2",
+                                    {
+                                        "Fn::Split": [
+                                            ":",
+                                            {
+                                                "Fn::GetAtt": [
+                                                    "MagentoAMIWaitCondition",
+                                                    "Data"
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        }
+    }
+}

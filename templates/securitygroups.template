@@ -1,0 +1,315 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Magento 2.1 Security Groups template",
+    "Parameters": {
+        "AccessCIDR": {
+            "AllowedPattern": "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/([0-9]|[1-2][0-9]|3[0-2]))$",
+            "ConstraintDescription": "Must be a valid IP range in x.x.x.x/x notation",
+            "Description": "The CIDR IP range that is permitted to access. Note: a value of 0.0.0.0/0 will allow access from ANY ip address",
+            "Type": "String"
+        },
+        "VPC": {
+            "AllowedPattern": "vpc-[0-9a-z]{8}",
+            "Default": "vpc-xxxxxxxx",
+            "Description": "VPC-ID of your existing Virtual Private Cloud (VPC) where you want to depoy RDS.",
+            "Type": "AWS::EC2::VPC::Id"
+        },
+        "VPCCIDR": {
+            "AllowedPattern": "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/([0-9]|[1-2][0-9]|3[0-2]))$",
+            "ConstraintDescription": "Must be a valid IP range in x.x.x.x/x notation",
+            "Description": "The CIDR block for VPC",
+            "Type": "String"
+        }
+    },
+    "Resources": {
+        "MySQLRDSSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "Allow access to MySQL Port (AWS Quick Start)",
+                "VpcId": {
+                    "Ref": "VPC"
+                },
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "3306",
+                        "ToPort": "3306",
+                        "SourceSecurityGroupId": {
+                            "Fn::GetAtt": [
+                                "WebServerSecurityGroup",
+                                "GroupId"
+                            ]
+                        }
+                    }
+                ],
+                "SecurityGroupEgress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "80",
+                        "ToPort": "80",
+                        "CidrIp": "0.0.0.0/0"
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "443",
+                        "ToPort": "443",
+                        "CidrIp": "0.0.0.0/0"
+                    }
+                ]
+            }
+        },
+        "ELBSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "ELB Security Group (AWS Quick Start)",
+                "VpcId": {
+                    "Ref": "VPC"
+                },
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "80",
+                        "ToPort": "80",
+                        "CidrIp": "0.0.0.0/0"
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "443",
+                        "ToPort": "443",
+                        "CidrIp": "0.0.0.0/0"
+                    }
+                ],
+                "SecurityGroupEgress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "80",
+                        "ToPort": "80",
+                        "CidrIp": "0.0.0.0/0"
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "443",
+                        "ToPort": "443",
+                        "CidrIp": "0.0.0.0/0"
+                    }
+                ]
+            }
+        },
+        "WebServerSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "App Server Security Group (AWS Quick Start)",
+                "VpcId": {
+                    "Ref": "VPC"
+                },
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "22",
+                        "ToPort": "22",
+                        "CidrIp": {
+                            "Ref": "AccessCIDR"
+                        }
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "443",
+                        "ToPort": "443",
+                        "SourceSecurityGroupId": {
+                            "Fn::GetAtt": [
+                                "ELBSecurityGroup",
+                                "GroupId"
+                            ]
+                        }
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "80",
+                        "ToPort": "80",
+                        "SourceSecurityGroupId": {
+                            "Fn::GetAtt": [
+                                "ELBSecurityGroup",
+                                "GroupId"
+                            ]
+                        }
+                    }
+                ],
+                "SecurityGroupEgress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "80",
+                        "ToPort": "80",
+                        "CidrIp": "0.0.0.0/0"
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "443",
+                        "ToPort": "443",
+                        "CidrIp": "0.0.0.0/0"
+                    }
+                ]
+            }
+        },
+        "EFSSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "Database Security Group (AWS Quick Start)",
+                "VpcId": {
+                    "Ref": "VPC"
+                },
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "2049",
+                        "ToPort": "2049",
+                        "CidrIp": {
+                            "Ref": "VPCCIDR"
+                        }
+                    }
+                ],
+                "SecurityGroupEgress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "80",
+                        "ToPort": "80",
+                        "CidrIp": "0.0.0.0/0"
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "443",
+                        "ToPort": "443",
+                        "CidrIp": "0.0.0.0/0"
+                    }
+                ]
+            }
+        },
+        "ElastiCacheSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "Database Security Group (AWS Quick Start)",
+                "VpcId": {
+                    "Ref": "VPC"
+                },
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "6379",
+                        "ToPort": "6379",
+                        "SourceSecurityGroupId": {
+                            "Fn::GetAtt": [
+                                "WebServerSecurityGroup",
+                                "GroupId"
+                            ]
+                        }
+                    }
+                ],
+                "SecurityGroupEgress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "80",
+                        "ToPort": "80",
+                        "CidrIp": "0.0.0.0/0"
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "443",
+                        "ToPort": "443",
+                        "CidrIp": "0.0.0.0/0"
+                    }
+                ]
+            }
+        },
+        "SecurityGroupRuleAppDB": {
+            "Type": "AWS::EC2::SecurityGroupEgress",
+            "Properties": {
+                "IpProtocol": "tcp",
+                "FromPort": "3306",
+                "ToPort": "3306",
+                "DestinationSecurityGroupId": {
+                    "Fn::GetAtt": [
+                        "MySQLRDSSecurityGroup",
+                        "GroupId"
+                    ]
+                },
+                "GroupId": {
+                    "Fn::GetAtt": [
+                        "WebServerSecurityGroup",
+                        "GroupId"
+                    ]
+                }
+            }
+        },
+        "SecurityGroupRuleAppEFS": {
+            "Type": "AWS::EC2::SecurityGroupEgress",
+            "Properties": {
+                "IpProtocol": "tcp",
+                "FromPort": "2049",
+                "ToPort": "2049",
+                "DestinationSecurityGroupId": {
+                    "Fn::GetAtt": [
+                        "EFSSecurityGroup",
+                        "GroupId"
+                    ]
+                },
+                "GroupId": {
+                    "Fn::GetAtt": [
+                        "WebServerSecurityGroup",
+                        "GroupId"
+                    ]
+                }
+            }
+        },
+        "SecurityGroupRuleAppCache": {
+            "Type": "AWS::EC2::SecurityGroupEgress",
+            "Properties": {
+                "IpProtocol": "tcp",
+                "FromPort": "6379",
+                "ToPort": "6379",
+                "DestinationSecurityGroupId": {
+                    "Fn::GetAtt": [
+                        "ElastiCacheSecurityGroup",
+                        "GroupId"
+                    ]
+                },
+                "GroupId": {
+                    "Fn::GetAtt": [
+                        "WebServerSecurityGroup",
+                        "GroupId"
+                    ]
+                }
+            }
+        }
+    },
+    "Outputs": {
+        "MySQLRDSSecurityGroup": {
+            "Description": "MySQL Security Group",
+            "Value": {
+                "Ref": "MySQLRDSSecurityGroup"
+            }
+        },
+        "ELBSecurityGroup": {
+            "Description": "ELB Security Group",
+            "Value": {
+                "Ref": "ELBSecurityGroup"
+            }
+        },
+        "WebServerSecurityGroup": {
+            "Description": "Web Server Security Group",
+            "Value": {
+                "Ref": "WebServerSecurityGroup"
+            }
+        },
+        "EFSSecurityGroup": {
+            "Description": "EFS Security Group",
+            "Value": {
+                "Ref": "EFSSecurityGroup"
+            }
+        },
+        "ElastiCacheSecurityGroup": {
+            "Description": "Elasticache Security Group",
+            "Value": {
+                "Ref": "ElastiCacheSecurityGroup"
+            }
+        }
+    }
+}

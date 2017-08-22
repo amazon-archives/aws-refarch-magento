@@ -1,0 +1,285 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Magento 2.1 RDS MySQL Template",
+    "Parameters": {
+        "DBAllocatedStorage": {
+            "ConstraintDescription": "must be between 5 and 4096 GiB. If Iops specified, AllocatedStorage must be at least 100 GiB and with minimum Iops value of 1000",
+            "Default": "5",
+            "Description": "The size of the database in gigabytes (GiB)",
+            "MaxValue": "4096",
+            "MinValue": "5",
+            "Type": "Number"
+        },
+        "DBAutoMinorVersionUpgrade": {
+            "AllowedValues": [
+                "true",
+                "false"
+            ],
+            "Default": "true",
+            "Description": "Select true/false to setup Auto Minor Version upgrade",
+            "Type": "String"
+        },
+        "DBBackupRetentionPeriod": {
+            "Default": "7",
+            "Description": "The number of days for which automatic DB snapshots are retained.",
+            "Type": "String"
+        },
+        "DBInstanceClass": {
+            "AllowedValues": [
+                "db.t1.micro",
+                "db.m1.small",
+                "db.m3.medium",
+                "db.m3.large",
+                "db.m3.xlarge",
+                "db.m3.2xlarge",
+                "db.m4.2xlarge",
+                "db.r3.large",
+                "db.r3.xlarge",
+                "db.r3.2xlarge",
+                "db.r3.4xlarge",
+                "db.r3.8xlarge",
+                "db.t2.micro",
+                "db.t2.small",
+                "db.t2.medium",
+                "db.m2.xlarge",
+                "db.m2.2xlarge",
+                "db.m2.4xlarge",
+                "db.cr1.8xlarge",
+                "db.m1.medium",
+                "db.m1.large",
+                "db.m1.xlarge"
+            ],
+            "ConstraintDescription": "Must select a valid database instance type.",
+            "Default": "db.m4.2xlarge",
+            "Description": "The name of the compute and memory capacity class of the DB instance.",
+            "Type": "String"
+        },
+        "DBIops": {
+            "AllowedValues": [
+                "1000",
+                "2000",
+                "3000",
+                "4000",
+                "5000",
+                "6000",
+                "7000",
+                "8000",
+                "9000",
+                "10000"
+            ],
+            "ConstraintDescription": "1000 Iops min and increased in 1K increments. ",
+            "Default": "1000",
+            "Description": "DB Iops. Used only when io1 specified for the StorageType property",
+            "Type": "Number"
+        },
+        "DBMasterUserPassword": {
+            "AllowedPattern": "(?=^.{6,255}$)((?=.*\\d)(?=.*[A-Z])(?=.*[a-z])|(?=.*\\d)(?=.*[^A-Za-z0-9])(?=.*[a-z])|(?=.*[^A-Za-z0-9])(?=.*[A-Z])(?=.*[a-z])|(?=.*\\d)(?=.*[A-Z])(?=.*[^A-Za-z0-9]))^.*",
+            "ConstraintDescription": "Min 8 chars.",
+            "Default": "Admin-123456",
+            "Description": "The database admin account password",
+            "MaxLength": "64",
+            "MinLength": "8",
+            "NoEcho": "True",
+            "Type": "String"
+        },
+        "DBMasterUsername": {
+            "AllowedPattern": "[a-zA-Z][a-zA-Z0-9]*",
+            "ConstraintDescription": "must begin with a letter and contain only alphanumeric characters.",
+            "Default": "admin",
+            "Description": "The database admin account username",
+            "MaxLength": "16",
+            "MinLength": "1",
+            "NoEcho": "true",
+            "Type": "String"
+        },
+        "DBMultiAZ": {
+            "AllowedValues": [
+                "true",
+                "false"
+            ],
+            "Default": "true",
+            "Description": "Specifies if the database instance is a multiple Availability Zone deployment.",
+            "Type": "String"
+        },
+        "DBName": {
+            "AllowedPattern": "[a-zA-Z][a-zA-Z0-9]*",
+            "Default": "QuickstartMySQLDB",
+            "Description": "Name of MySQL DB for Magento Stack",
+            "MaxLength": "64",
+            "MinLength": "5",
+            "Type": "String"
+        },
+        "DBStorageType": {
+            "AllowedValues": [
+                "standard",
+                "gp2",
+                "io1"
+            ],
+            "Default": "standard",
+            "Description": "The storage type associated with this database instance",
+            "Type": "String"
+        },
+        "MySQLRDSSecurityGroup": {
+            "Description": "MySql Security Group",
+            "Type": "AWS::EC2::SecurityGroup::Id"
+        },
+        "Subnets": {
+            "ConstraintDescription": "must be list of existing subnet Ids",
+            "Description": "Atleast two existing Subnets in separate Availability Zones your Virtual Private Cloud (VPC)",
+            "Type": "List<AWS::EC2::Subnet::Id>"
+        },
+        "VPC": {
+            "AllowedPattern": "vpc-[0-9a-z]{8}",
+            "Default": "vpc-xxxxxxxx",
+            "Description": "VPC-ID of your existing Virtual Private Cloud (VPC) where you want to depoy RDS.",
+            "Type": "AWS::EC2::VPC::Id"
+        }
+    },
+    "Conditions": {
+        "IOPSStorageType": {
+            "Fn::Equals": [
+                {
+                    "Ref": "DBStorageType"
+                },
+                "io1"
+            ]
+        }
+    },
+    "Resources": {
+        "MySQLDBSubnetGroup": {
+            "Type": "AWS::RDS::DBSubnetGroup",
+            "Properties": {
+                "DBSubnetGroupDescription": "Subnets available for the RDS MySQL DB Instance",
+                "SubnetIds": {
+                    "Ref": "Subnets"
+                }
+            }
+        },
+        "MySQLDB": {
+            "Type": "AWS::RDS::DBInstance",
+            "Properties": {
+                "DBName": {
+                    "Ref": "DBName"
+                },
+                "AllocatedStorage": {
+                    "Ref": "DBAllocatedStorage"
+                },
+                "DBInstanceClass": {
+                    "Ref": "DBInstanceClass"
+                },
+                "Engine": "MySQL",
+                "EngineVersion": "5.6",
+                "MasterUsername": {
+                    "Ref": "DBMasterUsername"
+                },
+                "MasterUserPassword": {
+                    "Ref": "DBMasterUserPassword"
+                },
+                "DBSubnetGroupName": {
+                    "Ref": "MySQLDBSubnetGroup"
+                },
+                "VPCSecurityGroups": [
+                    {
+                        "Ref": "MySQLRDSSecurityGroup"
+                    }
+                ],
+                "MultiAZ": {
+                    "Ref": "DBMultiAZ"
+                },
+                "StorageType": {
+                    "Ref": "DBStorageType"
+                },
+                "AutoMinorVersionUpgrade": {
+                    "Ref": "DBAutoMinorVersionUpgrade"
+                },
+                "BackupRetentionPeriod": {
+                    "Ref": "DBBackupRetentionPeriod"
+                },
+                "Iops": {
+                    "Fn::If": [
+                        "IOPSStorageType",
+                        {
+                            "Ref": "DBIops"
+                        },
+                        {
+                            "Ref": "AWS::NoValue"
+                        }
+                    ]
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "MySQLDB-YOUR-STACK-REPLACEME"
+                    }
+                ]
+            }
+        }
+    },
+    "Outputs": {
+        "MySQLEndPoints": {
+            "Description": "MySQL Endpoint to connect",
+            "Value": {
+                "Fn::Join": [
+                    "",
+                    [
+                        {
+                            "Fn::GetAtt": [
+                                "MySQLDB",
+                                "Endpoint.Address"
+                            ]
+                        },
+                        ":",
+                        {
+                            "Fn::GetAtt": [
+                                "MySQLDB",
+                                "Endpoint.Port"
+                            ]
+                        },
+                        "/",
+                        {
+                            "Ref": "DBName"
+                        }
+                    ]
+                ]
+            }
+        },
+        "DBName": {
+            "Description": "MySQL DBName",
+            "Value": {
+                "Ref": "DBName"
+            }
+        },
+        "MySQLEndPointAddress": {
+            "Description": "MySQL Endpoint to connect",
+            "Value": {
+                "Fn::Join": [
+                    "",
+                    [
+                        {
+                            "Fn::GetAtt": [
+                                "MySQLDB",
+                                "Endpoint.Address"
+                            ]
+                        }
+                    ]
+                ]
+            }
+        },
+        "MySQLEndPointPort": {
+            "Description": "MySQL Endpoint to connect",
+            "Value": {
+                "Fn::Join": [
+                    "",
+                    [
+                        {
+                            "Fn::GetAtt": [
+                                "MySQLDB",
+                                "Endpoint.Port"
+                            ]
+                        }
+                    ]
+                ]
+            }
+        }
+    }
+}

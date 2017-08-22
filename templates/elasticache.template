@@ -1,0 +1,110 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Magento 2.1 Elasticache Template",
+    "Parameters": {
+        "ElastiCacheAutomaticFailover": {
+            "AllowedValues": [
+                "true",
+                "false"
+            ],
+            "Default": "true",
+            "Description": "Select true/false to setup Automatic Failover",
+            "Type": "String"
+        },
+        "ElastiCacheNodeType": {
+            "AllowedValues": [
+                "cache.t2.micro",
+                "cache.t2.small",
+                "cache.t2.medium",
+                "cache.m3.medium",
+                "cache.m3.large",
+                "cache.m3.xlarge",
+                "cache.m3.2xlarge",
+                "cache.m4.large",
+                "cache.m4.xlarge",
+                "cache.m4.2xlarge",
+                "cache.m4.4xlarge",
+                "cache.m4.10xlarge",
+                "cache.c1.xlarge",
+                "cache.r3.large",
+                "cache.r3.xlarge",
+                "cache.r3.2xlarge",
+                "cache.r3.4xlarge",
+                "cache.r3.8xlarge"
+            ],
+            "ConstraintDescription": "Must select a valid cache instance type.",
+            "Default": "cache.m4.large",
+            "Description": "The name of the compute and memory capacity class of the ElastiCache instance.",
+            "Type": "String"
+        },
+        "ElastiCacheNodes": {
+            "ConstraintDescription": "must be between 2 and 5",
+            "Default": "2",
+            "Description": "Number of nodes in the ElastiCache cluster",
+            "MaxValue": "5",
+            "MinValue": "2",
+            "Type": "Number"
+        },
+        "ElastiCacheSecurityGroup": {
+            "Description": "ElastiCache Security Group",
+            "Type": "AWS::EC2::SecurityGroup::Id"
+        },
+        "Subnets": {
+            "ConstraintDescription": "Must be list of existing subnet Ids",
+            "Description": "Atleast two existing Subnets in separate Availability Zones your Virtual Private Cloud (VPC)",
+            "Type": "List<AWS::EC2::Subnet::Id>"
+        },
+        "VPC": {
+            "AllowedPattern": "vpc-[0-9a-z]{8}",
+            "Default": "vpc-xxxxxxxx",
+            "Description": "VPC-ID of your existing Virtual Private Cloud (VPC) where you want to deploy ElastiCache cluster.",
+            "Type": "AWS::EC2::VPC::Id"
+        }
+    },
+    "Resources": {
+        "ElastiCacheSubnetGroup": {
+            "Type": "AWS::ElastiCache::SubnetGroup",
+            "Properties": {
+                "Description": "Subnets available for the Redis Cache Instance (AWS Quick Start)",
+                "SubnetIds": {
+                    "Ref": "Subnets"
+                }
+            }
+        },
+        "ElastiCacheCluster": {
+            "Type": "AWS::ElastiCache::ReplicationGroup",
+            "Properties": {
+                "ReplicationGroupDescription": "ElastiCache Cluster (AWS Quick Start)",
+                "AutomaticFailoverEnabled": {
+                    "Ref": "ElastiCacheAutomaticFailover"
+                },
+                "CacheNodeType": {
+                    "Ref": "ElastiCacheNodeType"
+                },
+                "CacheSubnetGroupName": {
+                    "Ref": "ElastiCacheSubnetGroup"
+                },
+                "Engine": "redis",
+                "NumCacheClusters": {
+                    "Ref": "ElastiCacheNodes"
+                },
+                "SecurityGroupIds": [
+                    {
+                        "Ref": "ElastiCacheSecurityGroup"
+                    }
+                ]
+            }
+        }
+    },
+    "Outputs": {
+        "ElastiCacheEndpoint": {
+            "Description": "ElastiCache address",
+            "Value": {
+                "Fn::GetAtt": [
+                    "ElastiCacheCluster",
+                    "PrimaryEndPoint.Address"
+                ]
+            }
+        }
+    }
+}
