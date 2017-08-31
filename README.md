@@ -5,8 +5,8 @@ This reference architecture provides a set of CloudFormation templates to deploy
 Magento is an open-source content management system for e-commerce websites. This automated deployment builds a cluster that runs Magento along with optional sample data, which lets you experiment with custom themes and view the web store.
 
 You can launch this CloudFormation stack, using in your own account into: -
-  * A new VPC - [![cloudformation-launch-stack](images/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/new?stackName=Magento&templateURL=https://s3.amazonaws.com/quickstart-reference/magento/latest/templates/magento-master.template)
-  * An existing VPC - [![cloudformation-launch-stack](images/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/new?stackName=Magento&templateURL=https://s3.amazonaws.com/quickstart-reference/magento/latest/templates/magento.template)
+  * A new VPC - [![cloudformation-launch-stack](images/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/new?stackName=Magento&templateURL=https://s3.amazonaws.com/awslabs-refarch/magento/latest/templates/magento-master.template&QSS3BucketName=awslabs-refarch)
+  * An existing VPC - [![cloudformation-launch-stack](images/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/new?stackName=Magento&templateURL=https://s3.amazonaws.com/awslabs-refarch/magento/latest/templates/magento.template&QSS3BucketName=awslabs-refarch)
 
 ## Overview
 ![architecture-overview](images/aws-refarch-magento.png)
