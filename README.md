@@ -19,4 +19,4 @@ You can use the AWS CloudFormation templates included here to deploy a fully con
   
 You can also use the AWS CloudFormation templates as a starting point for your own implementation.
 
-For architectural details, best practices, step-by-step instructions, and customization options, see the [deployment guide](http://docs.aws.amazon.com/quickstart/latest/magento/welcome.html)
+For architectural details, best practices, step-by-step instructions, and customization options, see the[Magento Quick Start](https://aws.amazon.com/quickstart/architecture/magento/)
