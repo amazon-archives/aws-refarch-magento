@@ -1,3 +1,7 @@
+Archived in favour of https://github.com/aws-quickstart/quickstart-magento
+
+---
+
 # Hosting Magento on AWS
 
 This reference architecture provides a set of CloudFormation templates to deploy Magento Community Edition on the AWS Cloud.
